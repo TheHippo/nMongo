@@ -2,6 +2,6 @@
 class Test {
 
 	public static function main() {
-		trace(nMongo.NMongo.test());
+		var c = nMongo.DBConnection.connect('localhost');
 	}
 }

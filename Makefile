@@ -1,7 +1,7 @@
 NEKOPATH = /usr/lib/neko/include/
 CC = c++
 CFLAGS = -Wall -shared -I$(NEKOPATH) -fPIC
-LDFLAGS = -lmongoclient -lboost_thread-mt -lboost_filesystem -lboost_system
+LDFLAGS = -lmongoclient -lboost_thread-mt -lboost_filesystem -lboost_program_options -lneko
 
 OUT = nmongo.ndll
 

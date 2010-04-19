@@ -1,0 +1,9 @@
+nMongo
+======
+
+Driver for MongoDB database for the nekoVM.
+
+
+Building
+========
+On Debian/Ubuntu you probably need "libboost1.40-all-dev" installed for compiling.

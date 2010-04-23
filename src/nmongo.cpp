@@ -1,6 +1,7 @@
 #include <iostream>
 #include <neko.h>
 #include <mongo/client/dbclient.h>
+#include "bson.h"
 
 using namespace mongo;
 
@@ -14,8 +15,8 @@ value n_dbconnect(value host) {
 	
 	try {
 		c.connect(val_string(host));
-		void *ptr = &c;
-		return alloc_abstract(k_DBClientConnection,ptr);
+		cout << c.toString() << endl;
+		return alloc_abstract(k_DBClientConnection,&c);
 	}
 	catch (DBException &e) {
 		failure(e.what());
@@ -23,13 +24,32 @@ value n_dbconnect(value host) {
 	return val_null;
 }
 
-/* value n_getserver(value con) {
-		val_check_kind(con,k_DBClientConnection);
-		void *ptr = val_data(con);
-		DBClientConnection c = (DBClientConnection)ptr;
-		
-		return val_null;
-} */
+value n_getserveraddress(value con) {
+	val_check_kind(con,k_DBClientConnection);
+	DBClientConnection *c = (DBClientConnection*)val_data(con);
+	
+	//DBClientConnection dbc(c); 
+	//pure virtual method called
+	//terminate called without an active exception
+	
+	//cout << c->toString() << endl;
+	//Uncaught exception - Segmentation fault
+	
+	return alloc_string("foo");
+}
 
+value n_test() {
+	value con = n_dbconnect(alloc_string("localhost"));
+	cout << val_string(n_getserveraddress(con)) << endl;
+	return val_null;
+}
+
+//connection
 DEFINE_PRIM(n_dbconnect,1);
+DEFINE_PRIM(n_getserveraddress,1);
+DEFINE_PRIM(n_test,0);
+
+//bson
+DEFINE_PRIM(n_bson_encode,1);
+DEFINE_PRIM(n_bson_decode,1);
 

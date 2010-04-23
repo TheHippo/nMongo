@@ -5,7 +5,7 @@ LDFLAGS = -lmongoclient -lboost_thread-mt -lboost_filesystem -lboost_program_opt
 
 OUT = nmongo.ndll
 
-OBJ = src/nmongo.o
+OBJ = src/nmongo.o src/bson.o
 
 all: $(OBJ)
 	$(CC) $(CFLAGS) -o $(OUT) $(OBJ) $(LDFLAGS)

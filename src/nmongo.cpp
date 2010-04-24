@@ -7,12 +7,15 @@ using namespace mongo;
 
 DEFINE_KIND(k_DBClientConnection);
 
+#define GET_CONNECTION(c) ((DBClientConnection*)val_data(c))
+
+//called by garbage collection, after cleaning up a mongo.DBConnection object
 void kill_connection(value c) {
-	delete (DBClientConnection*) val_data(c);
+	delete GET_CONNECTION(c);
 }
 
-value n_dbconnect(value host) {
-	
+//connect to a simple database, format: host:port
+value n_dbconnect(value host) {	
 	val_check(host,string);
 	DBClientConnection *c = new DBClientConnection();
 	try {
@@ -24,12 +27,13 @@ value n_dbconnect(value host) {
 	catch (DBException &e) {
 		failure(e.what());
 	}
-	return val_null;
+	return val_null; //should never happen
 }
 
+//return the adress of the current connection
 value n_getserveraddress(value con) {
 	val_check_kind(con,k_DBClientConnection);
-	DBClientConnection *c = (DBClientConnection*)val_data(con);	
+	DBClientConnection *c = GET_CONNECTION(con);
 	return alloc_string(c->toString().c_str());
 }
 

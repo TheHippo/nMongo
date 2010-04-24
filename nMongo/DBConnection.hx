@@ -9,7 +9,7 @@ class DBConnection {
 		
 	public static function connect(host:String='localhost') {
 		var ret = Type.createEmptyInstance(DBConnection);
-		untyped ret.connection = _connect(neko.Lib.haxeToNeko(host));
+		untyped ret.connection = DBConnection._connect(neko.Lib.haxeToNeko(host));
 		return ret;
 	}
 	

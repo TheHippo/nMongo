@@ -4,5 +4,6 @@ class Test {
 	public static function main() {
 		var c = nMongo.DBConnection.connect('localhost');
 		trace(c.getServerAddress());
+		trace(c.getDatabaseNames());
 	}
 }

@@ -37,9 +37,33 @@ value n_getserveraddress(value con) {
 	return alloc_string(c->toString().c_str());
 }
 
+//return a list of all databases
+value n_getdatabasenames(value con) {
+	//check
+	val_check_kind(con,k_DBClientConnection);
+	DBClientConnection *c = GET_CONNECTION(con);
+	
+	//fetch result
+	list<string> db_result = c->getDatabaseNames();
+	
+	//neko types
+	value ret = alloc_array((int)db_result.size());
+	value *data = val_array_ptr(ret);
+	
+	//iterate
+	list<string>::iterator i;
+	int n = 0;
+	for (i=db_result.begin(); i!=db_result.end(); i++,n++ ) {
+		data[n]=alloc_string((*i).c_str());
+	}
+	
+	return ret;
+}
+
 //connection
 DEFINE_PRIM(n_dbconnect,1);
 DEFINE_PRIM(n_getserveraddress,1);
+DEFINE_PRIM(n_getdatabasenames,1);
 
 //bson
 DEFINE_PRIM(n_bson_encode,1);

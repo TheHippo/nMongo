@@ -6,6 +6,8 @@ using namespace mongo;
 
 DEFINE_KIND(k_BSONObject);
 
+#define GET_OBJECT(o) ((BSONObj*)val_data(o))
+
 value print( value v ) {
 	switch( val_type(v) ) {
 	case VAL_NULL:
@@ -43,10 +45,13 @@ value print( value v ) {
 	return val_null;
 }
 
+void kill_object(value obj) {
+	//delete GET_OBJECT(obj);
+}
 
 void iter_object(value v, field f, void* data) {
-		printf("%s: ",val_string(val_field_name(f)));
-		print(v);		
+	printf("%s: ",val_string(val_field_name(f)));
+	print(v);		
 }
 
 //decoding a neko object into bson data
@@ -54,14 +59,18 @@ value n_bson_encode(value obj) {
 	if (val_type(obj) != VAL_OBJECT)
 		failure("Given value is no object!");
 	
-	BSONObjBuilder *build;
+	BSONObjBuilder *build = new BSONObjBuilder();
 	val_iter_fields(obj,iter_object,build);
-	
-	value ret = alloc_abstract(k_BSONObject,build);
-	
+	BSONObj bo = build->obj();
+	value ret = alloc_abstract(k_BSONObject,&bo);
+	val_gc(ret,kill_object);
+	delete build;
 	return ret;
 }
+
 //decode bson data into a neko object
-value n_bson_decode(value str) {
+value n_bson_decode(value o) {
+	val_check_kind(o,k_BSONObject);
+	BSONObj *obj = GET_OBJECT(o);
 	return val_null;
 }

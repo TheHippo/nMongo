@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <neko.h>
 #include <mongo/client/dbclient.h>
 
@@ -6,52 +7,87 @@ using namespace mongo;
 
 DEFINE_KIND(k_BSONObject);
 
-#define GET_OBJECT(o) ((BSONObj*)val_data(o))
-
-value print( value v ) {
-	switch( val_type(v) ) {
-	case VAL_NULL:
-		printf("null");
-		break;
-	case VAL_INT:
-		printf("int : %d",val_int(v));
-		break;
-	case VAL_FLOAT:
-		printf("float : %f",val_float(v));
-		break;
-	case VAL_BOOL:
-		printf("bool : %s",val_bool(v)?"true":"false");
-		break;
-	case VAL_ARRAY:
-		printf("array : size %d",val_array_size(v));
-		break;
-	case VAL_FUNCTION:
-		printf("function : %d args",val_fun_nargs(v));
-		break;
-	case VAL_STRING:
-		printf("string : %s (%d bytes)",val_string(v),val_strlen(v));
-		break;
-	case VAL_OBJECT:
-		printf("object");
-		break;
-	case VAL_ABSTRACT:
-		printf("abstract of kind %X",val_kind(v));
-		break;
-	default:
-		printf("?????");
-		break;
-	}
-	printf("\n");
-	return val_null;
-}
+struct BSONData{
+	int length;
+	char *data;
+};
 
 void kill_object(value obj) {
-	//delete GET_OBJECT(obj);
+	BSONData *data = (BSONData*)val_data(obj);
+	free(data->data);
+	delete data;
 }
 
-void iter_object(value v, field f, void* data) {
-	printf("%s: ",val_string(val_field_name(f)));
-	print(v);		
+const char * intToString(int i) {
+    ostringstream temp;
+    temp << i;
+    return temp.str().c_str();
+}
+
+void iter_object(value v, field f, void* data);
+
+void appendToBuilder(value v, const char *name, BSONObjBuilder *b) {
+	switch (val_type(v)) {
+		case VAL_NULL:
+			b->appendNull(name);
+			break;
+		case VAL_INT:
+			b->append(name,val_int(v));
+			break;
+		case VAL_FLOAT:
+			b->append(name,val_float(v));
+			break;
+		case VAL_BOOL:
+			{
+				if (v==val_true)
+					b->appendBool(name,1);
+				else
+					b->appendBool(name,0);
+			}
+			break;
+		case VAL_ARRAY:
+			{
+				BSONObjBuilder *build = new BSONObjBuilder();
+				value *ar = val_array_ptr(v);
+				int n = val_array_size(v);
+				for (int i=0; i<n; i++) {			
+					appendToBuilder(ar[i],intToString(i),build);
+				}
+				b->appendArray(name,build->obj());
+				delete build; 
+			}
+			break; 
+		case VAL_STRING:
+			b->append(name,val_string(v));
+			break;
+		case VAL_OBJECT:
+			{ //c++ ... feels strange
+				BSONObjBuilder *build = new BSONObjBuilder();
+				val_iter_fields(v,iter_object,build);
+				b->append(name,build->obj());
+				delete build; 
+			}
+			break;		
+		default: // function undefined
+			failure("Strange value!");
+			break;
+	}
+}
+
+void iter_object(value v, field f, void* data) {	
+	char *name = val_string(val_field_name(f));
+	BSONObjBuilder *b = (BSONObjBuilder*)data;
+	appendToBuilder(v,name,b);	
+}
+
+
+BSONData* buildData(BSONObjBuilder *build) {
+	BSONObj bo = build->obj();	
+	BSONData *data = new BSONData;
+	data->length = bo.objsize();
+	data->data = (char*)malloc(data->length*sizeof(char));
+	memcpy(data->data,bo.objdata(),data->length);
+	return data;
 }
 
 //decoding a neko object into bson data
@@ -61,16 +97,25 @@ value n_bson_encode(value obj) {
 	
 	BSONObjBuilder *build = new BSONObjBuilder();
 	val_iter_fields(obj,iter_object,build);
-	BSONObj bo = build->obj();
-	value ret = alloc_abstract(k_BSONObject,&bo);
-	val_gc(ret,kill_object);
+	BSONData *data = buildData(build);
 	delete build;
+	value ret = alloc_abstract(k_BSONObject,data);
+	val_gc(ret,kill_object);
 	return ret;
 }
 
 //decode bson data into a neko object
 value n_bson_decode(value o) {
-	val_check_kind(o,k_BSONObject);
-	BSONObj *obj = GET_OBJECT(o);
+	//val_check_kind(o,k_BSONObject);
+	//BSONObj *obj = GET_OBJECT(o);
 	return val_null;
+}
+
+//return the json string representation of bson object
+value n_get_json(value o) {
+	val_check_kind(o,k_BSONObject);
+	BSONData *data = (BSONData*)val_data(o);
+	string test (data->data,data->length);
+	BSONObj obj (test.c_str(),false);
+	return alloc_string(obj.jsonString().c_str());
 }

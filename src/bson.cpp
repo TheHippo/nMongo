@@ -106,9 +106,39 @@ value n_bson_encode(value obj) {
 
 //decode bson data into a neko object
 value n_bson_decode(value o) {
-	//val_check_kind(o,k_BSONObject);
-	//BSONObj *obj = GET_OBJECT(o);
-	return val_null;
+	val_check_kind(o,k_BSONObject);
+	BSONData *data = (BSONData*)val_data(o);
+	string test (data->data,data->length);
+	BSONObj obj (test.c_str(),false);
+	
+	BSONObjIterator it(obj);
+	BSONElement el = it.next();
+	value ret = alloc_object(NULL);
+	value insert;
+	while(el.eoo()!=true) {
+		//alloc_field(ret,val_id(el.fieldName()),alloc_int(14));
+		switch (el.type()) {
+			case String:
+				insert = alloc_string(obj.getStringField(el.fieldName()));
+				break;
+			case NumberInt:
+				insert = alloc_int(obj.getIntField(el.fieldName()));
+				break;
+			case NumberDouble:
+				insert = alloc_float(el.number());
+				break;
+			case Array:
+				
+				//break;
+			default:
+				insert = val_null;
+				break;
+		}
+		alloc_field(ret,val_id(el.fieldName()),insert);
+		el = it.next();
+	}
+	
+	return ret;
 }
 
 //return the json string representation of bson object

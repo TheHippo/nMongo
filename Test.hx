@@ -15,5 +15,6 @@ class Test {
 			}
 		});
 		trace(data.json());
+		trace(data.decode());
 	}
 }

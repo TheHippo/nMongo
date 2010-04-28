@@ -18,8 +18,7 @@ class BSON {
 	private function new(data:Void)
 		this.data = data
 		
-	public function json():String
+	public inline function json():String
 		return BSON._json(this.data)
-
 
 }

@@ -68,4 +68,5 @@ DEFINE_PRIM(n_getdatabasenames,1);
 //bson
 DEFINE_PRIM(n_bson_encode,1);
 DEFINE_PRIM(n_bson_decode,1);
+DEFINE_PRIM(n_get_json,1);
 

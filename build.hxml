@@ -1,2 +1,5 @@
 -neko test.n
 -main Test
+-debug
+--no-inline
+--no-opt

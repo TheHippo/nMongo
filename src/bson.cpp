@@ -2,16 +2,13 @@
 #include <sstream>
 #include <neko.h>
 #include <mongo/client/dbclient.h>
+#include "bson.h"
 
 using namespace mongo;
 
 DEFINE_KIND(k_BSONObject);
 
-struct BSONData{
-	int length;
-	char *data;
-};
-
+//free data, called by GC
 void kill_object(value obj) {
 	BSONData *data = (BSONData*)val_data(obj);
 	free(data->data);
@@ -25,6 +22,7 @@ const char * intToString(int i) {
 }
 
 void iter_object(value v, field f, void* data);
+
 
 void appendToBuilder(value v, const char *name, BSONObjBuilder *b) {
 	switch (val_type(v)) {
@@ -47,6 +45,7 @@ void appendToBuilder(value v, const char *name, BSONObjBuilder *b) {
 			break;
 		case VAL_ARRAY:
 			{
+				//build subobject, object indexes are 0, 1, 2, usw.
 				BSONObjBuilder *build = new BSONObjBuilder();
 				value *ar = val_array_ptr(v);
 				int n = val_array_size(v);
@@ -63,6 +62,7 @@ void appendToBuilder(value v, const char *name, BSONObjBuilder *b) {
 		case VAL_OBJECT:
 			{ //c++ ... feels strange
 				BSONObjBuilder *build = new BSONObjBuilder();
+				//recrusion
 				val_iter_fields(v,iter_object,build);
 				b->append(name,build->obj());
 				delete build; 
@@ -74,12 +74,12 @@ void appendToBuilder(value v, const char *name, BSONObjBuilder *b) {
 	}
 }
 
+//encode loop function
 void iter_object(value v, field f, void* data) {	
 	char *name = val_string(val_field_name(f));
 	BSONObjBuilder *b = (BSONObjBuilder*)data;
 	appendToBuilder(v,name,b);	
 }
-
 
 BSONData* buildData(BSONObjBuilder *build) {
 	BSONObj bo = build->obj();	
@@ -104,7 +104,7 @@ value n_bson_encode(value obj) {
 	return ret;
 }
 
-
+//called by the decode loop
 value getObject(BSONElement *el, BSONObj *obj) {
 	value ret;
 	switch (el->type()) {
@@ -151,6 +151,7 @@ value getObject(BSONElement *el, BSONObj *obj) {
 			break;
 		default:
 			failure("Could not decode element");
+			//maybe a little bit hard, needs to be tested
 			break;
 	}
 	return ret;
@@ -173,6 +174,11 @@ value n_bson_decode(value o) {
 		el = it.next();
 	}	
 	return ret;
+}
+
+int checkBSONValue(value o) {
+	val_check_kind(o,k_BSONObject);
+	return 1;
 }
 
 //return the json string representation of bson object

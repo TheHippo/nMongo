@@ -1,12 +1,14 @@
 package nMongo;
 
-class DBConnection {
+class DBConnection implements Dynamic<Database> {
 
 	var connection:Void;
 
 	static var _connect = neko.Lib.load("nmongo","n_dbconnect",1);
 	static var _getserveraddress = neko.Lib.load("nmongo","n_getserveraddress",1);
 	static var _getdatabasenames = neko.Lib.load("nmongo","n_getdatabasenames",1);
+	
+	
 		
 	public static function connect(host:String='localhost') {
 		var ret = Type.createEmptyInstance(DBConnection);
@@ -19,5 +21,13 @@ class DBConnection {
 		
 	public function getDatabaseNames():List<String>
 		return Lambda.list(neko.Lib.nekoToHaxe(DBConnection._getdatabasenames(this.connection)))
+		
+	public inline function openDB(name:String):Database
+		return Type.createInstance(nMongo.Database,[this.connection,name])
+	
+	public inline function resolve(name:String):Database
+		return this.openDB(name)
+	
+	
 
 }

@@ -104,6 +104,58 @@ value n_bson_encode(value obj) {
 	return ret;
 }
 
+
+value getObject(BSONElement *el, BSONObj *obj) {
+	value ret;
+	switch (el->type()) {
+		case String:
+			ret = alloc_string(obj->getStringField(el->fieldName()));
+			break;
+		case NumberInt:
+			ret = alloc_int(obj->getIntField(el->fieldName()));
+			break;
+		case NumberDouble:
+			ret = alloc_float(el->number());
+			break;
+		case Array:
+			{
+				BSONObj x = el->embeddedObject();
+				ret = alloc_array(x.nFields());
+				value *ptr = val_array_ptr(ret);
+				BSONObjIterator it(x);
+				BSONElement el = it.next();
+				int i = 0;
+				while (el.eoo() != true) {
+					ptr[i++] = getObject(&el,&x);
+					el = it.next();
+				}
+			}
+			break;
+		case Object:
+			{
+				BSONObj x = el->embeddedObject();
+				ret = alloc_object(NULL);
+				BSONObjIterator it(x);
+				BSONElement el = it.next();
+				while (el.eoo() != true) {
+					alloc_field(ret,val_id(el.fieldName()),getObject(&el,&x));
+					el = it.next();
+				}
+			}
+			break;
+		case Bool:
+			ret = alloc_bool(el->boolean());
+			break;
+		case jstNULL:
+			ret = val_null;
+			break;
+		default:
+			failure("Could not decode element");
+			break;
+	}
+	return ret;
+}
+
 //decode bson data into a neko object
 value n_bson_decode(value o) {
 	val_check_kind(o,k_BSONObject);
@@ -114,30 +166,12 @@ value n_bson_decode(value o) {
 	BSONObjIterator it(obj);
 	BSONElement el = it.next();
 	value ret = alloc_object(NULL);
-	value insert;
+	value insert = val_null;
 	while(el.eoo()!=true) {
-		//alloc_field(ret,val_id(el.fieldName()),alloc_int(14));
-		switch (el.type()) {
-			case String:
-				insert = alloc_string(obj.getStringField(el.fieldName()));
-				break;
-			case NumberInt:
-				insert = alloc_int(obj.getIntField(el.fieldName()));
-				break;
-			case NumberDouble:
-				insert = alloc_float(el.number());
-				break;
-			case Array:
-				
-				//break;
-			default:
-				insert = val_null;
-				break;
-		}
+		insert = getObject(&el, &obj);
 		alloc_field(ret,val_id(el.fieldName()),insert);
 		el = it.next();
-	}
-	
+	}	
 	return ret;
 }
 

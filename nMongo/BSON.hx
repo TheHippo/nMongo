@@ -1,7 +1,7 @@
 package nMongo;
 
 
-class BSON <T>{
+class BSON {
 
 	var data:Void;
 
@@ -9,12 +9,12 @@ class BSON <T>{
 	static var _encode = neko.Lib.load("nmongo","n_bson_encode",1);
 	static var _json = neko.Lib.load("nmongo","n_get_json",1);
 	
-	public inline static var empty:BSON<Dynamic> = new BSON({});
+	public inline static var empty:BSON = new BSON({});
 	
-	public inline function decode():T
+	public inline function decode():Dynamic
 		return neko.Lib.nekoToHaxe(BSON._decode(this.data))
 	
-	public function new(obj:T)
+	public function new(obj:Dynamic)
 		this.data = BSON._encode(neko.Lib.haxeToNeko(obj))
 		
 	public inline function json():String

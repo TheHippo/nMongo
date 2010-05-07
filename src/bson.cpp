@@ -15,12 +15,14 @@ void kill_object(value obj) {
 	delete data;
 }
 
+//int to const char*, TODO: this surely could be improved
 const char * intToString(int i) {
     ostringstream temp;
     temp << i;
     return temp.str().c_str();
 }
 
+//needed by appendToBuilder
 void iter_object(value v, field f, void* data);
 
 
@@ -36,12 +38,10 @@ void appendToBuilder(value v, const char *name, BSONObjBuilder *b) {
 			b->append(name,val_float(v));
 			break;
 		case VAL_BOOL:
-			{
 				if (v==val_true)
 					b->appendBool(name,1);
 				else
 					b->appendBool(name,0);
-			}
 			break;
 		case VAL_ARRAY:
 			{
@@ -84,21 +84,28 @@ void iter_object(value v, field f, void* data) {
 BSONData* buildData(BSONObjBuilder *build) {
 	BSONObj bo = build->obj();	
 	BSONData *data = new BSONData;
+	//grab size
 	data->length = bo.objsize();
+	//alloc space
 	data->data = (char*)malloc(data->length*sizeof(char));
+	//copy raw data
 	memcpy(data->data,bo.objdata(),data->length);
 	return data;
 }
 
-//decoding a neko object into bson data
-value n_bson_encode(value obj) {
+BSONData* intern_encode(value obj) {
 	if (val_type(obj) != VAL_OBJECT)
 		failure("Given value is no object!");
-	
 	BSONObjBuilder *build = new BSONObjBuilder();
 	val_iter_fields(obj,iter_object,build);
 	BSONData *data = buildData(build);
 	delete build;
+	return data;
+}
+
+//decoding a neko object into bson data
+value n_bson_encode(value obj) {	
+	BSONData *data = intern_encode(obj);	
 	value ret = alloc_abstract(k_BSONObject,data);
 	val_gc(ret,kill_object);
 	return ret;
@@ -176,14 +183,8 @@ value n_bson_decode(value o) {
 	return ret;
 }
 
-int checkBSONValue(value o) {
-	val_check_kind(o,k_BSONObject);
-	return 1;
-}
-
 //return the json string representation of bson object
 value n_get_json(value o) {
-	val_check_kind(o,k_BSONObject);
 	BSONData *data = (BSONData*)val_data(o);
 	string test (data->data,data->length);
 	BSONObj obj (test.c_str(),false);

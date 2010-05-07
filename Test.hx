@@ -18,5 +18,10 @@ class Test {
 		trace(data.decode());
 		trace(c.test.test.count());
 		c.foo.foo.insert(data);
+		var cur = c.foo.foo.query(new nMongo.Query().limit(5).where("foo","bar"));
+		for (i in cur)
+			trace(i.json());
+		
+		//trace(nMongo.DBConnection.connect("localhost").foo.foo.query(new nMongo.Query().limit(1).where("foo","bar")));
 	}
 }
